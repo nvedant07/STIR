@@ -2,7 +2,6 @@ import torch as ch
 from torch import nn
 import dill
 import os
-from .tools import helpers, constants
 from attack.attacker import AttackerModel
 
 class FeatureExtractor(ch.nn.Module):

@@ -36,8 +36,8 @@ class CompositeLoss:
                   weights=(1., 1.))
     would optimize for close representations
     """
-    def __init__(self, losses: Union[list, tuple], 
-                       weights: Optional[Union[torch.Tensor, list, tuple, np.ndarray]]=None) -> None:
+    def __init__(self, losses: Union[List, Tuple], 
+                       weights: Optional[Union[torch.Tensor, List, Tuple, np.ndarray]]=None) -> None:
         self.weights = weights
         if weights is None:
             self.weights = np.ones(len(losses))
@@ -203,42 +203,6 @@ class LPNormLossSingleModel:
     def __repr__(self):
         return f'Model1 Loss: {torch.mean(self.model1_loss)} ({torch.mean(self.model1_loss_normed)})'
 
-
-class TVLoss:
-    # TV loss to penalize high freq features, see https://arxiv.org/abs/1412.0035
-    def __init__(self, args, beta=1.):
-        self.args = args
-        self.beta = beta
-    
-    def __call__(self, model1, model2, inp, targ1, targ2, layer_num=None):
-        ## see kornia or tf's implemetation: 
-        #   https://kornia.readthedocs.io/en/latest/_modules/kornia/losses/total_variation.html
-        #   https://github.com/tensorflow/tensorflow/blob/v2.8.0/tensorflow/python/ops/image_ops_impl.py#L3220-L3289
-        
-        if not isinstance(inp, torch.Tensor):
-            raise TypeError(f"Input type is not a torch.Tensor. Got {type(inp)}")
-
-        if len(inp.shape) != 4:
-            raise ValueError("Expected input tensor to be of ndim 4 [batch, channels, height, width], "
-                             f"but got ndim = {len(inp.shape)} instead.")
-
-        pixel_dif1 = inp[..., 1:, :] - inp[..., :-1, :] # diff accross y
-        pixel_dif2 = inp[..., :, 1:] - inp[..., :, :-1] # diff accross x
-
-        reduce_axes = (-3, -2, -1)
-        res1 = (pixel_dif1 ** 2).sum(dim=reduce_axes)
-        res2 = (pixel_dif2 ** 2).sum(dim=reduce_axes)
-        # res1 = pixel_dif1.abs().sum(dim=reduce_axes)
-        # res2 = pixel_dif2.abs().sum(dim=reduce_axes)
-        self.tv_dist = torch.pow(res1 + res2, self.beta/2.)
-        return self.tv_dist, None
-    
-    def clear_cache(self) -> None:
-        self.tv_dist = None
-        torch.cuda.empty_cache()
-
-    def __repr__(self) -> str:
-        return f'TVDist: {torch.mean(self.tv_dist) if hasattr(self, "tv_dist") else 0.}'
 
 class LPNormLoss:
 

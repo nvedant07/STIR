@@ -28,18 +28,10 @@ called directly---instead, these arguments are passed along from
 """
 
 import torch as ch
-import dill
-import os
-if int(os.environ.get("NOTEBOOK_MODE", 0)) == 1:
-    from tqdm import tqdm_notebook as tqdm
-else:
-    from tqdm import tqdm
+from tqdm import tqdm
 
-import sys 
-sys.path.append('attack')
 from model.tools import helpers
 import attack.attack_steps as attack_steps
-from attack.losses import LPNormLossSingleModel
 
 STEPS = {
     'inf': attack_steps.LinfStep,

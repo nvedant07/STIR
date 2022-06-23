@@ -8,17 +8,11 @@ if int(os.environ.get("NOTEBOOK_MODE", 0)) == 1:
 else:
     from tqdm import tqdm as tqdm
 
-import shutil
-import random
-import time
 import numpy as np
 import torch as ch
 import torch.utils.data
 from torch.utils.data import Subset
-import torchvision.transforms as transforms
-from torchvision import datasets
 from torch.utils.data import DataLoader
-
 from torch.utils.data.sampler import BatchSampler
 
 class BalancedBatchSampler(BatchSampler):

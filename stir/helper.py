@@ -5,7 +5,7 @@ from torchvision import datasets
 from torch.utils.data import DataLoader
 import numpy as np
 from enum import Enum
-import math
+import math, os
 import sys, pickle, functools
 
 import joblib, pickle
@@ -14,9 +14,7 @@ try:
     from losses import RelativeAdvLoss, LPNormLossSingleModel
 except:
     from attack.losses import RelativeAdvLoss, LPNormLossSingleModel
-import output as out
 
-SERVER_PROJECT_PATH = 'divergence_measure'
 RESULTS_FOLDER_NAME = 'results'
 
 # layers that can be reset
@@ -51,16 +49,17 @@ DATASET_TO_MEAN_STD = {
     'imagenet': (torch.tensor([0.485, 0.456, 0.406]), torch.tensor([0.229, 0.224, 0.225]))
 }
 
-def recursive_create_dir(dirpath):
-    '''
-    Given a dirpath, this recursively creates the directories
-    Eg: for dirpath = "logs/checkpoints/r18"
-    It first creates logs, then logs/checkpoints, and 
-    finally logs/checkpoints/r18/eps1
-    '''
-    individual_dirs = dirpath.split('/')
-    for i in range(1, len(individual_dirs)+1):
-        out.create_dir('/'.join(individual_dirs[:i]))
+
+def create_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
+def recursive_create_dir(target_dir):
+    directories = ['/'] + target_dir.split('/')[1:-1]
+    for i in range(1, len(directories) + 1):
+        yield os.path.join(*directories[:i])
+
 
 def list_as_ints(arg):
     return [int(x) if x.lower() != 'none' else None for x in arg.split(',')]

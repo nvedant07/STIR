@@ -4,7 +4,6 @@ import numpy as np
 import torch as ch
 import torch.utils.data as data
 import model.data_augmentation as da
-from model import imagenet_models
 from .folder import default_loader, IMG_EXTENSIONS
 
 target_transform_oi = ch.Tensor

@@ -6,7 +6,13 @@
 ### Installation
 
 ```
-pip install stir
+pip install stir-invariance
+```
+
+Or you can install it from source. First clone this repo and then run
+
+```
+python setup.py install
 ```
 
 ### Quick Start
@@ -14,7 +20,7 @@ pip install stir
 ```python
 import stir
 
-test_dataloader = ... ## (instance of torch.utils.data.DataLoader, )
+test_dataloader = ... ## (instance of torch.utils.data.DataLoader, should return)
 model1 = ... ## 
 model2 = ... ## 
 

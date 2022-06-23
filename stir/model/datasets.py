@@ -18,9 +18,8 @@ datasets to the library.
 import pathlib
 
 import torch as ch
-import torch.utils.data
+from torchvision import datasets
 from . import imagenet_models, cifar_models
-from torchvision import transforms, datasets
 
 from .tools import constants
 from .tools import openimgs_helpers

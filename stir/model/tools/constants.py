@@ -1,6 +1,4 @@
 import torch as ch
-import cox
-from cox import store
 
 # dog (117), cat (5), frog (3), turtle (5), bird (21), 
 # monkey (14), fish (9), crab (4), insect (20) 

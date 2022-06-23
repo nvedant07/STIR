@@ -1,1 +1,1 @@
-from stir import stir
+from stir import STIR

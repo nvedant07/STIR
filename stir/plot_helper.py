@@ -7,10 +7,7 @@ import matplotlib.patches as mpatches
 
 import seaborn as sns
 import numpy as np
-import os, sys, warnings
-from imageio import imread
-
-import output as out
+import warnings
 
 import helper as hp
 
@@ -69,9 +66,9 @@ def line_plot(lines_y, x_title, y_title, plot_title, subfolder, filename, extens
     assert np.all([len(x) == len(lines_y[0]) for x in lines_y[1:]]), "All lists in lines_y should be of the same size"
     
     if savefig:
-        out.create_dir('{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME))
-        out.create_dir('{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name))
-        out.create_dir('{}/{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+        hp.create_dir('{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME))
+        hp.create_dir('{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name))
+        hp.create_dir('{}/{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
     
     if x_vals is None:
         x_vals = np.arange(1, len(lines_y[0]) + 1)
@@ -188,7 +185,7 @@ def line_plot_two_y_axis(ax1_lines, ax2_lines, x_title, y_titles, plot_title, su
         sns.set_style('whitegrid')
 
     if savefig:
-        out.create_dir('{}/{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+        hp.create_dir('{}/{}/{}/{}'.format(root_dir, hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
 
 
     fig, ax1 = plt.subplots(figsize=figsize)
@@ -333,7 +330,7 @@ def stitched_images(image_objects, plot_titles, results_dir, filename, extension
         sns.set_style('white')
 
     if savefig:
-        hp.recursive_create_dir(results_dir)
+        [_ for _ in hp.recursive_create_dir(results_dir)]
 
     if plot_title_colors is not None:
         assert len(plot_title_colors) == len(plot_titles)
@@ -365,7 +362,7 @@ def stitched_bar(bars, plot_titles, results_dir, filename, extension, y_lims, x_
     global_title='', columns=5, savefig=True, plot_title_colors=None, figsize=(15,10)):
     sns.set_style('white')
     if savefig:
-        out.create_dir(results_dir)
+        hp.create_dir(results_dir)
 
     if plot_title_colors is not None:
         assert len(plot_title_colors) == len(plot_titles)
@@ -436,7 +433,7 @@ def plot_histograms(histogram_vals, x_title, y_title, plot_title, subfolder, fil
             new_histogram_vals[i] = hist/bin_totals
         else:
             raise ValueError('{} not  a valid hist_type'.format(hist_type))
-    out.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+    hp.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
     ax.grid(b=True, color='#ACACAC', which='major', linestyle=':', linewidth=0.3)
@@ -481,7 +478,7 @@ def plot_heatmaps(maps, x_labels, y_labels, plot_title="", subplot_titles=None, 
 #     else:
 #         sns.set_style('white')
 
-    out.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+    hp.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
     if types is None:
         types = ['maps'] * len(maps)
     # if not 'maps' in types:
@@ -546,7 +543,7 @@ def plot_heatmaps(maps, x_labels, y_labels, plot_title="", subplot_titles=None, 
     return figpath
 
 def plot_venn(sets, set_labels, subfolder, filename, extension='png', title='', results_subfolder_name='untitled'):
-    out.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+    hp.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
     if len(sets) != 2 and len(sets) != 3:
         raise ValueError("Only supported for 2 or 3 sets")
 
@@ -580,9 +577,9 @@ def bar_plot(bars, x_title, y_title, plot_title, subfolder, x_labels, filename, 
         extension = 'pdf'
         set_paper_friendly_params()
     
-    out.create_dir('{}'.format(results_folder_name))
-    out.create_dir('{}/{}'.format(results_folder_name, results_subfolder_name))
-    out.create_dir('{}/{}/{}'.format(results_folder_name, results_subfolder_name, subfolder))
+    hp.create_dir('{}'.format(results_folder_name))
+    hp.create_dir('{}/{}'.format(results_folder_name, results_subfolder_name))
+    hp.create_dir('{}/{}/{}'.format(results_folder_name, results_subfolder_name, subfolder))
 
     x = np.arange(1, len(x_labels) + 1)
     fig = plt.figure(figsize=figsize)
@@ -645,9 +642,9 @@ def scatter_plot(x, y, labels, plot_title, subfolder, filename, x_label, y_label
     x_err=None, y_err=None, legend_vals=None, paper_friendly_plots=False, colors=None, markers=None, sizes=None, 
     results_subfolder_name='untitled', legend_ncol=None):
     
-    out.create_dir('{}'.format(hp.RESULTS_FOLDER_NAME))
-    out.create_dir('{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name))
-    out.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
+    hp.create_dir('{}'.format(hp.RESULTS_FOLDER_NAME))
+    hp.create_dir('{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name))
+    hp.create_dir('{}/{}/{}'.format(hp.RESULTS_FOLDER_NAME, results_subfolder_name, subfolder))
 
     if paper_friendly_plots:
         extension = 'pdf'

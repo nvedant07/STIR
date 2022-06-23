@@ -3,7 +3,6 @@ import numpy as np
 import torch.nn as nn
 from torch.optim import SGD, lr_scheduler
 from torchvision.utils import make_grid
-from cox.utils import Parameters
 
 from .tools import helpers
 from .tools.helpers import AverageMeter, ckpt_at_epoch, has_attr

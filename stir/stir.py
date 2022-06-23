@@ -57,7 +57,7 @@ def get_seed_images(seed, shape, verbose, inputs=None):
     return init_seed_images
 
 
-def stir(args, 
+def STIR(args, 
          data_path_target: str,
          model1: torch.nn.Module, 
          model2: torch.nn.Module, 
