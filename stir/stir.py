@@ -9,6 +9,7 @@ import torch
 from stir.attack.losses import SIM_METRICS, LPNormLossSingleModel
 from stir.attack.attacker import AttackerModel
 import stir.helper as hp
+import stir.model.tools.helpers as helpers
 
 
 def get_seed_images(seed, shape, verbose, inputs=None):
@@ -69,7 +70,7 @@ def STIR(model1: torch.nn.Module,
          ve_kwargs: Optional[Dict]=None, 
          norm_type: int=2., 
          seed: str='super-noise', 
-         verbose=True, 
+         verbose=False, 
          sim_metric: str='linear_CKA', 
          no_opt=False, 
          layer1_num=None, 
@@ -77,6 +78,9 @@ def STIR(model1: torch.nn.Module,
 
     if isinstance(inputs, tuple):
         loader, total_imgs = inputs
+        if not isinstance(loader, helpers.DataPrefetcher):
+            loader = helpers.DataPrefetcher(loader, 
+                device=torch.device(f'cuda:{devices[0]}'))
     else:
         loader, total_imgs = \
             [(inputs, torch.arange(len(inputs)))], len(inputs) # to make it an iterable

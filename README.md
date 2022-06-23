@@ -19,7 +19,7 @@ python setup.py install
 
 ```python
 import stir
-import stir.tools.helpers as helpers
+import stir.model.tools.helpers as helpers
 import stir.helper as hp
 
 test_dataloader = ... ## (instance of torch.utils.data.DataLoader, 
@@ -39,8 +39,8 @@ normalizer2 = helpers.InputNormalize(*hp.DATASET_TO_MEAN_STD[model2_dataset])
 total_images = 1000 # number of images to use for computing STIR
 
 # computes STIR between penultimate layer of model1 and model2
-stir_score = stir.STIR(model1, normalizer1, 
-                       model2, normalizer2, 
+stir_score = stir.STIR(model1, model2, 
+                       normalizer1, normalizer2, 
                        (test_dataloader, total_images))
 
 stir_score.m1m2 ## STIR(m1|m2)
