@@ -7,14 +7,9 @@ Reference:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-try:
-    from ..tools.custom_modules import SequentialWithArgs, FakeReLU
-except:
-    import sys
-    sys.path.append('model')
-    from tools.custom_modules import SequentialWithArgs, FakeReLU
-
+from stir.model.tools.custom_modules import SequentialWithArgs, FakeReLU
 from functools import partial
+
 
 class BasicBlock(nn.Module):
     expansion = 1

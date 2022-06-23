@@ -10,10 +10,7 @@ import sys, pickle, functools
 
 import joblib, pickle
 from sklearn.metrics import accuracy_score
-try:
-    from losses import RelativeAdvLoss, LPNormLossSingleModel
-except:
-    from attack.losses import RelativeAdvLoss, LPNormLossSingleModel
+from stir.attack.losses import RelativeAdvLoss, LPNormLossSingleModel
 
 RESULTS_FOLDER_NAME = 'results'
 

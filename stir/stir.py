@@ -3,21 +3,17 @@ A relaxation of inverted_rep_divergence, we calculate CKA on m2(X) and
 m2(X') where X' are inverted reps of m1(X), ie m1(X) \approx m1(X').
 '''
 
-from typing import Union, Dict, Optional
+from typing import Iterable, Union, Dict, Optional
 import torch
-import numpy as np
-import os
-import argparse, itertools
-import output as out
-from torchvision.utils import save_image
 
-import model.tools.image_object as io
-from attack.losses import SIM_METRICS, LPNormLossSingleModel, SimLoss, CompositeLoss, TVLoss
+from stir.attack.losses import SIM_METRICS, LPNormLossSingleModel
+from stir.attack.attacker import AttackerModel
+import stir.helper as hp
 
-import helper as hp
 
 def get_seed_images(seed, shape, verbose, inputs=None):
-    print (f'From get_seed_images, seed = {seed}')
+    if verbose:
+        print (f'From get_seed_images, seed = {seed}')
     if seed == 'super-noise-same':
         if verbose:    print('=> Seeds: Random super-noise, same for all images')
         init_seed_images = torch.randn(*shape[1:], dtype=torch.float)
@@ -57,12 +53,19 @@ def get_seed_images(seed, shape, verbose, inputs=None):
     return init_seed_images
 
 
-def STIR(args, 
-         data_path_target: str,
-         model1: torch.nn.Module, 
+class STIRResult:
+    def __init__(self, stir_m1m2, stir_m2m1, rsm):
+        self.m1m2 = stir_m1m2
+        self.m2m1 = stir_m2m1
+        self.rsm = rsm
+
+
+def STIR(model1: torch.nn.Module, 
          model2: torch.nn.Module, 
+         normalizer1: torch.nn.Module, 
+         normalizer2: torch.nn.Module, 
          inputs: Union[tuple, torch.Tensor], 
-         devices: list, 
+         devices: list=[0], 
          ve_kwargs: Optional[Dict]=None, 
          norm_type: int=2., 
          seed: str='super-noise', 
@@ -70,30 +73,52 @@ def STIR(args,
          sim_metric: str='linear_CKA', 
          no_opt=False, 
          layer1_num=None, 
-         layer2_num=None,
-         save_generated_images: bool=True,
-         model_type: str=None):
-    '''
-    Given two models model1 and model2 (both instances of attacker.Attacker),
-    and a train_loader, it returns a divergence measure between model1 and model2
-
-    This is done by generating a set of images that are perceived similarly by model1
-    and then giving it to model2 and calculating the perception distance there.
-
-    inputs: either a set of images (torch.Tensor) or a tuple of (loader, total_imgs)
-    train_loader: loads images on which to calculate divergences
-    devices: GPU devices
-    seed: starting point for representation inversion
-    norm_type: norm used to generate inverted reresentations
-    save_generated_images: if inverted images need to be saved to disk
-    model_type: used for saving generted images, inferred automatically if None
-    '''
+         layer2_num=None):
 
     if isinstance(inputs, tuple):
-        train_loader, total_imgs = inputs
+        loader, total_imgs = inputs
     else:
-        train_loader, total_imgs = \
+        loader, total_imgs = \
             [(inputs, torch.arange(len(inputs)))], len(inputs) # to make it an iterable
+    
+    model1, model2 = AttackerModel(model1, normalizer1), AttackerModel(model2, normalizer2)
+    m2m1, _ = _stir(model1, model2, loader, total_imgs, devices, ve_kwargs, 
+                    norm_type, seed, verbose, sim_metric, no_opt, 
+                    layer1_num, layer2_num)
+    m1m2, rsm = _stir(model2, model1, loader, total_imgs, devices, ve_kwargs, 
+                      norm_type, seed, verbose, sim_metric, no_opt, 
+                      layer2_num, layer1_num)
+    return STIRResult(m1m2, m2m1, rsm)
+
+
+def _stir(model1: AttackerModel, 
+         model2: AttackerModel, 
+         loader: Iterable, 
+         total_imgs: int,
+         devices: list=[0], 
+         ve_kwargs: Optional[Dict]=None, 
+         norm_type: int=2., 
+         seed: str='super-noise', 
+         verbose=True, 
+         sim_metric: str='linear_CKA', 
+         no_opt=False, 
+         layer1_num=None, 
+         layer2_num=None):
+    '''
+    Given two models model1 and model2 (both instances of attacker.Attacker),
+    it returns STIR(model2 | model1)
+
+    This is done by generating a set of images (X, X') that are perceived similarly 
+    by model1 and then giving it to model2 and calculating similarity 
+    between m2(X) and m2(X').
+
+    inputs: either a set of images (torch.Tensor) or a tuple of (loader, total_imgs)
+    loader: loads images on which to calculate divergences
+    devices: GPU device indices
+    no_opt: if True, returns STIR scores on just the seeds -- only use for sanity check
+    seed: starting point for representation inversion
+    norm_type: norm used to generate inverted reresentations
+    '''
 
     if ve_kwargs is None:
         dummy_args = hp.DummyArgs(('lpnorm_type', norm_type, float)) # LpNorm for the representation
@@ -110,20 +135,13 @@ def STIR(args,
         }
     ve_kwargs['layer_num'] = layer1_num
 
-    n_samples_per_iter, img_indices = None, {}
-    ## create two objects, one to track OG CKA, one to track STIR
+    n_samples_per_iter = None
+    ## create two objects, one to track the underlying RSM, one to track STIR
     cka_og, cka_stir = SIM_METRICS[sim_metric](), SIM_METRICS[sim_metric]()
-    for index, tup in enumerate(train_loader):
-        images, labels = tup
+    for index, tup in enumerate(loader):
+        images, _ = tup
         n_samples_this_iter = len(images)
         if n_samples_per_iter is None:  n_samples_per_iter = len(images)
-
-        raw_indices = torch.arange(len(images))
-        for l in set(labels.cpu().numpy()):
-            if l not in img_indices:
-                img_indices[l] = np.arange(torch.sum(labels == l).item())
-            else:
-                img_indices[l] = 1 + img_indices[l][-1] + np.arange(torch.sum(labels == l).item())
 
         (_, images_repr1), _ = model1(images, layer_num=layer1_num, 
             with_latent=True if layer1_num is None else False)
@@ -153,54 +171,16 @@ def STIR(args,
         if no_opt:
             images_matched = seed_images
         else:
-            if model_type is None:
-                model_type = f'eps{args.model1_path.split("/eps")[-1].split("/")[0]}' if 'eps' in args.model1_path else 'nonrob'
-                if 'trades' in args.model1_path.lower():
-                    model_type += 'trades'
-                if 'mart' in args.model1_path.lower():
-                    model_type += 'mart'
-            try:
-                rand_seed = args.model1_path.split('_rand_seed_')[1].split('.')[0]
-                dataset = args.model1_path.split('checkpoints/')[1].split('/')[0]
-            except:
-                rand_seed, dataset = None, None
-            imgs_path = f'./results/generated_images/{args.target_dataset}/'\
-                        f'm1_{args.architecture1}_{dataset}_{model_type}_s{rand_seed}_l{layer1_num}'
+            (_, images_matched), _ = model1(
+                inp=seed_images,
+                target=images_repr1,
+                make_adv=True,
+                with_image=True,
+                **ve_kwargs) # these images are not normalized
+            images_matched = images_matched.detach()
 
-            loaded_images, mask = load_tensor_images(imgs_path, img_indices, raw_indices, seed, labels, 
-                hp.get_classes_names(args.target_dataset, data_path_target))
-            print (f'Loaded {torch.sum(mask)} images from disk ({imgs_path})!')
-
-            if torch.sum(~mask) > 0:
-                (_, new_images_matched), _ = model1(
-                    inp=seed_images[~mask],
-                    target=images_repr1[~mask],
-                    make_adv=True,
-                    with_image=True,
-                    **ve_kwargs) # these images are not normalized
-                new_images_matched = new_images_matched.detach()
-
-                img_idx_counts = {l:0 for l in img_indices.keys()}
-                for l in labels[mask]:
-                    img_idx_counts[l.item()] += 1
-                img_indices_for_saving = {}
-                for l in img_indices.keys():
-                    img_indices_for_saving[l] = img_indices[l][img_idx_counts[l]:]
-
-                if save_generated_images:
-                    save_tensor_images(imgs_path, img_indices, seed, new_images_matched, 
-                        seed_images[~mask], images[~mask], labels[~mask], 
-                        hp.get_classes_names(args.target_dataset, data_path_target))
-                
-                images_matched = images.clone()
-                if loaded_images is not None:
-                    images_matched[mask] = loaded_images.to(images.device)
-                images_matched[~mask] = new_images_matched
-            else:
-                images_matched = loaded_images.to(images.device)
-
-        seed_reps_1, seed_reps_2, seed_images, loaded_images, images_repr1, images_repr2 = \
-            None, None, None, None, None, None
+        seed_reps_1, seed_reps_2, seed_images, images_repr1, images_repr2 = \
+            None, None, None, None, None
         torch.cuda.empty_cache()
 
         _, rep_x = model2(images, with_latent=True if layer2_num is None else False, 
@@ -221,57 +201,3 @@ def STIR(args,
     ve_kwargs['custom_loss'].clear_cache()
 
     return cka_stir.value(), cka_og.value()
-
-
-def load_tensor_images(path, img_indices, raw_indices, seed_name, labels, classes_name):
-    path_result = os.path.join(path, 'result')
-
-    mask = torch.zeros_like(labels).bool()
-    loaded_imgs = None
-    img_idx_counts = {l:0 for l in img_indices.keys()}
-    for label, i in zip(labels, raw_indices):
-        idx = img_indices[label.item()][img_idx_counts[label.item()]]
-        img_idx_counts[label.item()] += 1
-
-        img_name = f'{int(idx)}_{classes_name[label]}_seed_{seed_name}'
-        img_result = f'{path_result}/{img_name}.pkl'
-        if os.path.exists(img_result):
-            im = io.load_object(img_result).image
-            mask[i] = True
-            loaded_imgs = im.view(1, *im.shape) if loaded_imgs is None else \
-                torch.cat((loaded_imgs, im.view(1, *im.shape)))
-
-    return loaded_imgs, mask
-
-
-def save_tensor_images(path, img_indices, seed_name, results, seeds, targets, labels, classes_name):
-    path = os.path.abspath(path)
-    for _d in out.recursive_create_dir(path):
-        out.create_dir(_d)
-    path_target = os.path.join(path, 'target')
-    out.create_dir(path_target)
-    path_seed = os.path.join(path, 'seed')
-    out.create_dir(path_seed)
-    path_result = os.path.join(path, 'result')
-    out.create_dir(path_result)
-
-    img_idx_counts = {l:0 for l in img_indices.keys()}
-    for result, seed, target, label in zip(results, seeds, targets, labels):
-        idx = img_indices[label.item()][img_idx_counts[label.item()]]
-        img_idx_counts[label.item()] += 1
-
-        img_name = f'{int(idx)}_{classes_name[label]}_seed_{seed_name}'
-        img_target = f'{path_target}/{img_name}.png'
-        img_seed = f'{path_seed}/{img_name}.png'
-        img_result = f'{path_result}/{img_name}.png'
-
-        save_image(target, img_target)
-        save_image(seed, img_seed)
-        save_image(result, img_result)
-
-        io.save_object(int(idx), target.cpu(), label.item(), f'{path_target}/{img_name}.pkl')
-        io.save_object(int(idx), seed.cpu(), label.item(), f'{path_seed}/{img_name}.pkl')
-        io.save_object(int(idx), result.cpu(), label.item(), f'{path_result}/{img_name}.pkl')
-
-    print(f'=> Saved images in {path}')
-

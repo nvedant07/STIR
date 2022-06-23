@@ -2,7 +2,7 @@ from typing import List
 
 import torch
 
-import CKA_pytorch
+import stir.CKA_pytorch as CKA_pytorch
 
 
 def unbiased_linear_HSIC(X: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:

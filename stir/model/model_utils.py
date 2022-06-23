@@ -2,7 +2,8 @@ import torch as ch
 from torch import nn
 import dill
 import os
-from attack.attacker import AttackerModel
+from stir.attack.attacker import AttackerModel
+import stir.model.tools.helpers as helpers
 
 class FeatureExtractor(ch.nn.Module):
     '''
@@ -90,7 +91,8 @@ def make_and_restore_model(*_, arch, dataset, target_dataset=None, resume_path=N
     classifier_model = dataset.get_model(arch, pytorch_pretrained, **extra_model_kwargs) if \
                             isinstance(arch, str) else arch
 
-    model = AttackerModel(classifier_model, dataset)
+    model = AttackerModel(classifier_model, 
+        helpers.InputNormalize(dataset.mean, dataset.std))
 
     # optionally resume from a checkpoint
     checkpoint = None

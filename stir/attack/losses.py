@@ -2,10 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import helper as hp
-
-from CKA_pytorch import linear_CKA, kernel_CKA, WrapperCKA 
-from CKA_minibatch import MinibatchCKA
+from stir.CKA_pytorch import linear_CKA, kernel_CKA, WrapperCKA 
+from stir.CKA_minibatch import MinibatchCKA
 
 from functools import partial
 from typing import Optional, Tuple, Union, List
@@ -23,93 +21,11 @@ def forward_models(model, inp, layer_num=None):
     else:
         model_name = model.__class__.__name__
     fake_relu = True
-    if model_name == 'VGG' or model_name == 'InceptionV3' or 'sparse' in model_name.lower():
+    if model_name == 'VGG' or \
+        model_name == 'InceptionV3' or \
+            'sparse' in model_name.lower():
         fake_relu = False
     return model(inp, with_latent=True, fake_relu=fake_relu, layer_num=layer_num)
-
-
-class CompositeLoss:
-    """
-    Combines multiple losses. Eg:
-
-    CompositeLoss(losses=(LpNormLossSingleModel(lpnorm_type=2), TVLoss(lpnorm_type=2)), 
-                  weights=(1., 1.))
-    would optimize for close representations
-    """
-    def __init__(self, losses: Union[List, Tuple], 
-                       weights: Optional[Union[torch.Tensor, List, Tuple, np.ndarray]]=None) -> None:
-        self.weights = weights
-        if weights is None:
-            self.weights = np.ones(len(losses))
-        self.losses = losses
-
-    def __call__(self, *args, **kwargs):
-        total_loss = 0.
-        for i,l in enumerate(self.losses):
-            total_loss += l(*args, **kwargs)[0] * self.weights[i]
-        return total_loss, None
-    
-    def clear_cache(self) -> None:
-        for l in self.losses:
-            l.clear_cache()
-        torch.cuda.empty_cache()
-
-    def __repr__(self) -> str:
-        return ' '.join([str(l) for l in self.losses])
-
-
-class DistOneEnsembleLPNormLoss:
-    '''
-        For the first model tries to find reps that are close (or far) and 
-        for other models finds reps that are far (or close). 
-        Loss = self.args.direction * [ model_1_loss - (model_2_loss + model_2_loss + ...)
-
-        This must be called from inside get_adv method of attacker
-    '''
-    def __init__(self, args):
-        self.args = args
-
-    def __call__(self, inp, targ, models):
-        self.models = models
-        if len(models) > 1:
-            model_loss, model_loss_perception = [], []
-            op_model1 = None
-            for idx, (model, target) in enumerate(zip(models, targ)):
-                target = target.float()
-                op, rep1 = forward_models(model.model_generator.model if isinstance(model, hp.GeneratorWrapper) else model.model, inp)
-                if idx == 0:
-                    op_model1 = op
-                model_loss_perception.append(torch.norm(rep1 - target, p=self.args.lpnorm_type, dim=1))
-                model_loss.append(torch.div(torch.norm(rep1 - target, p=self.args.lpnorm_type, dim=1), 
-                                                torch.norm(target, p=self.args.lpnorm_type, dim=1))) # use normalized loss for numerical stability
-            self.losses = torch.stack(model_loss)
-            self.losses_perception = torch.stack(model_loss_perception)
-            # separate losses
-            self.first_loss = self.losses[0]
-            self.other_losses = self.losses[1:]
-            # weight losses
-            # self.weights = torch.abs(torch.mean(self.other_losses, dim=1))
-            self.weights = torch.ones_like(self.other_losses)
-            # self.weights = self.weights.reshape(self.other_losses.shape[0],1).repeat(1,self.other_losses.shape[1])
-            self.weighted_losses = self.other_losses * self.weights
-            self.other_losses = torch.sum((self.weighted_losses), dim=0)
-            self.loss = self.args.direction * (self.first_loss - (self.other_losses * self.args.alpha))
-        else:
-            op_model1, rep1 = forward_models(models[0].model_generator.model if isinstance(models[0], hp.GeneratorWrapper) else models[0].model, inp)
-            self.losses_perception = torch.norm(rep1 - targ[0], p=self.args.lpnorm_type, dim=1)
-            self.loss = torch.div(torch.norm(rep1 - targ[0], p=self.args.lpnorm_type, dim=1), torch.norm(targ[0], p=self.args.lpnorm_type, dim=1))
-        torch.cuda.empty_cache()
-        return self.loss, op_model1
-
-    def __repr__(self):
-        if len(self.models) > 1:
-            description = f'{self.models[0].model_generator.model.__class__.__name__}: {torch.mean(self.losses_perception[0]).item():.4f} ({torch.mean(self.first_loss).item():.4f}) '
-            description += f'Other: {torch.mean(torch.mean(self.losses_perception[1:], dim=1)).item():.4f} ({torch.mean(self.other_losses).item():.4f})'
-            description += ''.join([f' {m.model.__class__.__name__}: {torch.mean(self.losses_perception[1:][i]).item():.4f} ' \
-                for i,m in enumerate(self.models[1:])])
-        else:
-            description = f'First: {self.loss_perception.item():.4f} ({self.loss.item():.4f}) '
-        return description
 
 
 class RelativeAdvLoss:

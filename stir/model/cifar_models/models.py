@@ -1,12 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.optim import lr_scheduler
-from torchvision import datasets, transforms
-import torchvision
-
-
 
 
 class Flatten(nn.Module):
@@ -42,6 +35,7 @@ class Sparsify1D(SparsifyBase):
         topval = topval.expand(x.shape[1], x.shape[0]).permute(1,0)
         comp = (x>=topval).to(x)
         return comp*x
+
 
 class Sparsify1D_kactive(SparsifyBase):
     def __init__(self, k=1):
@@ -80,7 +74,6 @@ class Sparsify2D_vol(SparsifyBase):
         super(Sparsify2D_vol, self).__init__()
         self.sr = sparse_ratio
 
-
     def forward(self, x):
         size = x.shape[1]*x.shape[2]*x.shape[3]
         k = int(self.sr*size)
@@ -90,6 +83,7 @@ class Sparsify2D_vol(SparsifyBase):
         topval = topval.repeat(tmpx.shape[1], 1).permute(1,0).view_as(x)
         comp = (x>=topval).to(x)
         return comp*x
+
 
 class Sparsify2D_kactive(SparsifyBase):
     '''cross channel sparsify'''
@@ -106,6 +100,7 @@ class Sparsify2D_kactive(SparsifyBase):
         comp = (x>=topval).to(x)
         return comp*x
 
+
 class Sparsify2D_abs(SparsifyBase):
     def __init__(self, sparse_ratio=0.5):
         super(Sparsify2D_abs, self).__init__()
@@ -121,6 +116,7 @@ class Sparsify2D_abs(SparsifyBase):
         topval = topval.expand(absx.shape[2], absx.shape[3], absx.shape[0], absx.shape[1]).permute(2,3,0,1)
         comp = (absx>=topval).to(x)
         return comp*x
+
 
 class Sparsify2D_invabs(SparsifyBase):
     def __init__(self, sparse_ratio=0.5):
@@ -147,6 +143,7 @@ class breakReLU(nn.Module):
 
     def forward(self, x):
         return self.thre(x)
+
 
 class SmallCNN(nn.Module):
     def __init__(self, fc_in=3136, n_classes=10):

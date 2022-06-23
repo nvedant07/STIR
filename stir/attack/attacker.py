@@ -30,8 +30,8 @@ called directly---instead, these arguments are passed along from
 import torch as ch
 from tqdm import tqdm
 
-from model.tools import helpers
-import attack.attack_steps as attack_steps
+from stir.model.tools import helpers
+import stir.attack.attack_steps as attack_steps
 
 STEPS = {
     'inf': attack_steps.LinfStep,
@@ -53,17 +53,17 @@ class Attacker(ch.nn.Module):
     documents the arguments supported for adversarial attacks specifically.
     '''
     
-    def __init__(self, model, dataset):
+    def __init__(self, model, normalizer):
         '''
         Initialize the Attacker
 
         Args:
             nn.Module model : the PyTorch model to attack
-            Dataset dataset : dataset the model is trained on, only used to get mean and std for normalization
+            nn.Module normalizer : performs normalization in forward pass
         '''
         
         super(Attacker, self).__init__()
-        self.normalize = helpers.InputNormalize(dataset.mean, dataset.std)
+        self.normalize = normalizer
         self.model = model
 
     def forward(self, x, target, *_, constraint, eps, step_size, iterations,
@@ -280,11 +280,11 @@ class AttackerModel(ch.nn.Module):
     For a more comprehensive overview of this class, see 
     :doc:`our detailed walkthrough <../example_usage/input_space_manipulation>`.
     """
-    def __init__(self, model, dataset):
+    def __init__(self, model, normalizer):
         super(AttackerModel, self).__init__()
-        self.normalizer = helpers.InputNormalize(dataset.mean, dataset.std)
+        self.normalizer = normalizer
         self.model = model
-        self.attacker = Attacker(model, dataset)
+        self.attacker = Attacker(model, normalizer)
 
     def forward(self, inp, make_adv=False, with_latent=False, return_possible_layers=False,
                 fake_relu=False, no_relu=False, with_image=True, **attacker_kwargs):

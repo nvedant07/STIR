@@ -17,7 +17,7 @@ setuptools.setup(
                'stir.model.cifar_models'],
      install_requires=['torch>=1.8.1', 
                        'torchvision>=0.9.1', 
-                       'numpy>=1.19.2', 
+                       'numpy>=1.22.0', 
                        'scipy>=1.0.1', 
                        'tqdm>=4.56.0',
                        'matplotlib>=3.2.2',
@@ -25,11 +25,12 @@ setuptools.setup(
                        'seaborn>=0.11.0',
                        'joblib>=0.17.0',
                        'dill>=0.3.3',
-                       'scikit-learn>=0.23.2'],
+                       'scikit-learn>=0.23.2',
+                       'Pillow>=8.0.0'],
      classifiers=[
          'Programming Language :: Python :: 3',
+         'Programming Language :: Python :: 3.8',
          'License :: OSI Approved :: Apache License',
          'Operating System :: OS Independent',
-         'Development Status :: 4 - Beta'
-     ],
- )
+         'Development Status :: 4 - Beta'],
+)

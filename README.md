@@ -19,14 +19,29 @@ python setup.py install
 
 ```python
 import stir
+import stir.tools.helpers as helpers
+import stir.helper as hp
 
-test_dataloader = ... ## (instance of torch.utils.data.DataLoader, should return)
-model1 = ... ## 
-model2 = ... ## 
+test_dataloader = ... ## (instance of torch.utils.data.DataLoader, 
+                      ## should return (images, labels) in each iter)
+                      ## images should *not* be normalized since 
+                      ## normalization is performed in model's forward pass
+
+model1 = ... ## instance of torch.nn.Module
+model1_dataset = 'cifar10'
+normalizer1 = helpers.InputNormalize(*hp.DATASET_TO_MEAN_STD[model1_dataset]) 
+## or any instance of torch.nn.Module that performs input normalization
+model2 = ... ## instance of torch.nn.Module
+model2_dataset = 'cifar10'
+normalizer2 = helpers.InputNormalize(*hp.DATASET_TO_MEAN_STD[model2_dataset])
+## or any instance of torch.nn.Module that performs input normalization
 
 total_images = 1000 # number of images to use for computing STIR
 
-stir_score = stir.STIR(model1, model2, test_dataloader, total_images)
+# computes STIR between penultimate layer of model1 and model2
+stir_score = stir.STIR(model1, normalizer1, 
+                       model2, normalizer2, 
+                       (test_dataloader, total_images))
 
 stir_score.m1m2 ## STIR(m1|m2)
 stir_score.m2m1 ## STIR(m2|m1)
