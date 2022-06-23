@@ -86,6 +86,7 @@ def STIR(model1: torch.nn.Module,
             [(inputs, torch.arange(len(inputs)))], len(inputs) # to make it an iterable
     
     model1, model2 = AttackerModel(model1, normalizer1), AttackerModel(model2, normalizer2)
+    model1, model2 = model1.to(torch.device(f'cuda:{devices[0]}')), model2.to(torch.device(f'cuda:{devices[0]}'))
     m2m1, _ = _stir(model1, model2, loader, total_imgs, devices, ve_kwargs, 
                     norm_type, seed, verbose, sim_metric, no_opt, 
                     layer1_num, layer2_num)
