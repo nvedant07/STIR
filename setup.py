@@ -26,7 +26,7 @@ setuptools.setup(
                        'joblib>=0.17.0',
                        'dill>=0.3.3',
                        'scikit-learn>=0.23.2',
-                       'Pillow>=8.0.0'],
+                       'Pillow>=9.0.1'],
      classifiers=[
          'Programming Language :: Python :: 3',
          'Programming Language :: Python :: 3.8',
