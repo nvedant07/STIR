@@ -2,7 +2,7 @@ import setuptools
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 setuptools.setup(
-     name='stir',  
+     name='stir-invariance',  
      version='0.0',
      author='Vedant Nanda',
      author_email="vedant@cs.umd.edu",
@@ -30,7 +30,7 @@ setuptools.setup(
      classifiers=[
          'Programming Language :: Python :: 3',
          'Programming Language :: Python :: 3.8',
-         'License :: OSI Approved :: Apache License',
+         'License :: OSI Approved :: Apache Software License',
          'Operating System :: OS Independent',
          'Development Status :: 4 - Beta'],
 )
