@@ -12,8 +12,7 @@ pip install stir-invariance
 Or you can install it from source. First clone this repo and then run
 
 
-```
-(recommended) 
+``` 
 pip install -e .
 ```
 or
