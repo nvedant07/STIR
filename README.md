@@ -1,6 +1,6 @@
 ## Similarity Through Inverted Representations (STIR)  [Paper](http://arxiv.org/abs/2206.11939)
 
-**Measuring Representational Robustness of Neural Networks Through Shared Invariances**, ICML 2022.
+**Measuring Representational Robustness of Neural Networks Through Shared Invariances**, (Long Presentation) [ICML 2022](https://icml.cc/Conferences/2022/Schedule?type=Oral).
 [Vedant Nanda](https://nvedant07.github.io/), [Till Speicher](https://people.mpi-sws.org/~tspeicher/), [Camila Kolling](https://camilakolling.github.io/), [John P. Dickerson](http://jpdickerson.com/), [Krishna P. Gummadi](https://people.mpi-sws.org/~gummadi/), [Adrian Weller](http://mlg.eng.cam.ac.uk/adrian/)
 
 ### Installation
